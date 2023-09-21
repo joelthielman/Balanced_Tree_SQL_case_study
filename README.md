@@ -24,7 +24,7 @@ balanced_tree.product_details includes all information about the entire range th
 | d5e9a6     | 23    | Khaki Suit Jacket - Womens       | 1           | 4          | 10       | Womens        | Jacket       | Khaki Suit          |
 | 72f5d4     | 19    | Indigo Rain Jacket - Womens      | 1           | 4          | 11       | Womens        | Jacket       | Indigo Rain         |
 | 9ec847     | 54    | Grey Fashion Jacket - Womens     | 1           | 4          | 12       | Womens        | Jacket       | Grey Fashion        |
-| 5d267b     | 40    | White Tee Shirt - Mens	          | 2           | 5          | 13       | Mens          | Shirt        | White Tee           |
+| 5d267b     | 40    | White Tee Shirt - Mens	        | 2           | 5          | 13       | Mens          | Shirt        | White Tee           |
 | c8d436     | 10    | Teal Button Up Shirt - Mens      | 2           | 5          | 14       | Mens          | Shirt        | Teal Button Up      |
 | 2a2353     | 57    | Blue Polo Shirt - Mens           | 2           | 5          | 15       | Mens          | Shirt        | Blue Polo           |
 | f084eb     | 36    | Navy Solid Socks - Mens          | 2           | 6          | 16       | Mens          | Socks        | Navy Solid          |
@@ -39,8 +39,8 @@ quantity, price, percentage discount, member status, a transaction ID and also t
 | prod_id | qty | price | discount | member | txn_id | start_txn_time           |
 | ------- | --- | ----- | -------- | ------ | ------ | ------------------------ |
 | c4a632  | 4   | 13    | 17       | t      | 54f307 | 2021-02-13 01:59:43.296  |
-| 5d267b  | 4	  | 40    | 17       | t	    | 54f307 | 2021-02-13 01:59:43.296  |
-| b9a74d  | 4	  | 17    | 17       | t      | 54f307 | 2021-02-13 01:59:43.296  |
+| 5d267b  | 4	| 40    | 17       | t	    | 54f307 | 2021-02-13 01:59:43.296  |
+| b9a74d  | 4	| 17    | 17       | t      | 54f307 | 2021-02-13 01:59:43.296  |
 | 2feb6b  | 2   | 29    | 17       | t      | 54f307 | 2021-02-13 01:59:43.296  |
 | c4a632  | 5   | 13    | 21       | t      | 26cc98 | 2021-01-19 01:39:00.3456 |
 | e31d39  | 2   | 10    | 21       | t      | 26cc98 | 2021-01-19 01:39:00.3456 |
@@ -248,7 +248,7 @@ ORDER BY details.segment_name;
 Output:
 | segment_name | total_qty | total_revenue | total_discount |
 | ------------ | --------- | ------------- | -------------- |
-| Jacket       | 11385     | 366983	       | 11290          |
+| Jacket       | 11385     | 366983	   | 11290          |
 | Jeans	       | 11349     | 208350        | 6332           |
 | Shirt        | 11265     | 406143        | 12523          |
 | Socks        | 11217     | 307977        | 10690          |
@@ -321,7 +321,7 @@ ORDER BY category_id;
 </pre>
 
 Output:
-| category_id | category_name	| product_id | product_name                 | total_qty |
+| category_id | category_name | product_id | product_name                 | total_qty |
 | ----------- | ------------- | ---------- | ---------------------------- | --------- |
 | 1           | Womens        | 9ec847     | Grey Fashion Jacket - Womens | 3876      |
 | 2           | Mens          | 2a2353     | Blue Polo Shirt - Mens       | 3819      |
