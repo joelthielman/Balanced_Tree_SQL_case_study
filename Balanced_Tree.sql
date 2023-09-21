@@ -1,0 +1,253 @@
+--Balanced Tree SQL case study (https://8weeksqlchallenge.com/case-study-7/)
+
+--A. High Level Sales Analysis
+
+--1. What was the total quantity sold for all products?
+
+SELECT SUM(qty) AS total_qty
+FROM balanced_tree.sales;
+
+--Answer: 45,216
+
+--2. What is the total generated revenue for all products before discounts?
+
+SELECT SUM(price * qty) AS total_sales
+FROM balanced_tree.sales;
+
+--Answer: $1,289,453
+
+--3. What was the total discount amount for all products?
+
+SELECT ROUND(SUM(qty * price * discount::numeric/100), 2) AS total_discount
+FROM balanced_tree.sales;
+
+--Answer: $156,229.14
+
+--B. Transaction Analysis
+
+--1. How many unique transactions were there?
+
+SELECT COUNT(DISTINCT txn_id) AS total_txn
+FROM balanced_tree.sales;
+
+--Answer: 2,500
+
+--2. What is the average unique products purchased in each transaction?
+
+WITH unique_products AS (
+	SELECT txn_id, COUNT (DISTINCT prod_id) AS product_count
+	FROM balanced_tree.sales
+	GROUP BY txn_id
+  	)
+SELECT ROUND(AVG(product_count)) AS avg_uniq_prod
+FROM unique_products;
+
+--Answer: 6
+
+--3. What are the 25th, 50th and 75th percentile values for the revenue per transaction?
+
+WITH transaction_revenue AS (
+ 	SELECT ROUND(((qty * price) - ((qty * price * discount)::Numeric / 100)), 2) AS revenue
+  	FROM balanced_tree.sales
+	)
+SELECT
+   	PERCENTILE_DISC(0.25) WITHIN GROUP(ORDER BY revenue) AS pct_25,
+   	PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY revenue) AS pct_50,
+   	PERCENTILE_DISC(0.75) WITHIN GROUP(ORDER BY revenue) AS pct_75
+FROM transaction_revenue;
+
+--Answer: $31.54, $55.76, $103.74
+
+--4. What is the average discount value per transaction?
+
+WITH transaction_discounts AS (
+	SELECT txn_id, SUM(price * qty * ((100 - discount) / 100)) AS total_discount
+	FROM balanced_tree.sales
+	GROUP BY txn_id
+	)
+SELECT ROUND(AVG(total_discount), 2) AS avg_discount_value
+FROM transaction_discounts;
+
+--Answer: $16.33
+
+--5. What is the percentage split of all transactions for members vs non-members?
+
+SELECT member, ROUND(COUNT(DISTINCT txn_id)/(SUM(COUNT(DISTINCT txn_id)) OVER()) * 100) AS percent
+FROM balanced_tree.sales
+GROUP BY member;
+
+--Answer: 60% member, 40% nonmember
+
+--6. What is the average revenue for member transactions and non-member transactions?
+
+WITH member_revenue AS (
+	SELECT member, txn_id, SUM(price * qty * ((100 - discount) / 100)) AS revenue
+  	FROM balanced_tree.sales
+  	GROUP BY member, txn_id
+	)
+SELECT member, ROUND(AVG(revenue), 2) AS avg_revenue
+FROM member_revenue
+GROUP BY member;
+
+--Answer: $17.72 member, $14.23 nonmember
+
+--C. Product Analysis
+
+--1. What are the top 3 products by total revenue before discount?
+
+SELECT details.product_name, SUM(sales.price * sales.qty) AS total_revenue
+FROM balanced_tree.sales AS sales
+	JOIN balanced_tree.product_details AS details
+	ON sales.prod_id = details.product_id
+GROUP BY details.product_name
+ORDER BY total_revenue DESC
+LIMIT 3;
+
+--Answer: (see table)
+
+--2. What is the total quantity, revenue and discount for each segment?
+
+SELECT details.segment_name,
+	SUM(sales.qty) AS total_qty, SUM(sales.price * sales.qty) AS total_revenue,
+    SUM(sales.price * sales.qty * ((100 - discount) / 100)) AS total_discount
+FROM balanced_tree.product_details AS details
+	JOIN balanced_tree.sales AS sales ON
+    details.product_id = sales.prod_id
+GROUP BY details.segment_name
+ORDER BY details.segment_name;
+
+--Answer: (see table)
+
+--3. What is the top selling product for each segment?
+
+WITH top_selling AS ( 
+	SELECT details.segment_id, details.segment_name, details.product_id, details.product_name,
+    SUM(sales.qty) AS total_qty,
+    RANK() OVER (
+    	PARTITION BY segment_id 
+    	ORDER BY SUM(sales.qty) DESC) AS ranking
+  	FROM balanced_tree.sales
+  		JOIN balanced_tree.product_details AS details
+    	ON sales.prod_id = details.product_id
+	GROUP BY details.segment_id, details.segment_name, details.product_id, details.product_name
+	)
+SELECT segment_id, segment_name, product_id, product_name, total_qty
+FROM top_selling
+WHERE ranking = 1
+ORDER BY segment_name;
+
+--Answer: (see table)
+
+--4. What is the total quantity, revenue and discount for each category?
+
+SELECT details.category_name,
+	SUM(sales.qty) AS total_qty, SUM(sales.price * sales.qty) AS total_revenue,
+    SUM(sales.price * sales.qty * ((100 - discount) / 100)) AS total_discount
+FROM balanced_tree.product_details AS details
+	JOIN balanced_tree.sales AS sales
+    ON details.product_id = sales.prod_id
+GROUP BY details.category_name
+ORDER BY details.category_name;
+
+--Answer (see table)
+
+--5. What is the top selling product for each category?
+
+WITH top_selling AS ( 
+	SELECT details.category_id, details.category_name, details.product_id, details.product_name,
+    SUM(sales.qty) AS total_qty,
+    RANK() OVER (
+    	PARTITION BY category_id 
+    	ORDER BY SUM(sales.qty) DESC) AS ranking
+  	FROM balanced_tree.sales
+  		JOIN balanced_tree.product_details AS details
+    	ON sales.prod_id = details.product_id
+	GROUP BY details.category_id, details.category_name, details.product_id, details.product_name
+	)
+SELECT category_id, category_name, product_id, product_name, total_qty
+FROM top_selling
+WHERE ranking = 1
+ORDER BY category_id;
+
+--Answer (see table)
+
+--6. What is the percentage split of revenue by product for each segment?
+
+WITH product_revenue AS (
+	SELECT details.segment_name, details.product_name,
+    SUM(sales.qty * sales.price) AS product_revenue
+  	FROM balanced_tree.sales AS sales
+  		JOIN balanced_tree.product_details AS details
+    	ON sales.prod_id = details.product_id
+  	GROUP BY details.segment_name, details.product_name
+	)
+SELECT segment_name, product_name,
+	ROUND(100 * product_revenue / SUM(product_revenue) OVER
+         (PARTITION BY segment_name), 2) AS product_percent
+FROM product_revenue
+ORDER BY segment_name, product_percent DESC;
+
+--Answer: (see table)
+
+--7. What is the percentage split of revenue by segment for each category?
+
+WITH segment_revenue AS (
+	SELECT details.category_name, details.segment_name,
+    SUM(sales.qty * sales.price) AS segment_revenue
+  	FROM balanced_tree.sales AS sales
+  		JOIN balanced_tree.product_details AS details
+    	ON sales.prod_id = details.product_id
+  	GROUP BY details.category_name, details.segment_name
+	)
+SELECT category_name, segment_name,
+	ROUND(100 * segment_revenue / SUM(segment_revenue) OVER
+         (PARTITION BY category_name), 2) AS segment_percent
+FROM segment_revenue
+GROUP BY segment_revenue, category_name, segment_name
+ORDER BY category_name, segment_percent DESC;
+
+WITH segment_category_revenue AS (
+	SELECT details.segment_name, details.category_name, SUM(sales.qty * sales.price) AS category_revenue
+  	FROM balanced_tree.sales AS sales
+  		JOIN balanced_tree.product_details AS details
+    	ON sales.prod_id = details.product_id
+  	GROUP BY details.segment_name, details.category_name
+	)
+SELECT segment_name, category_name,
+	CAST(100.0 * category_revenue / SUM(category_revenue) OVER (PARTITION BY category_name) 
+    	AS decimal (10, 2)) AS segment_category_pct
+FROM segment_category_revenue;
+
+--8. What is the percentage split of total revenue by category?
+
+SELECT ROUND(100 * SUM(CASE WHEN details.category_id = 1 THEN (sales.qty * sales.price) END) / 
+	SUM(qty * sales.price)) AS womens,
+    (100 - ROUND(100 * SUM(CASE WHEN details.category_id = 1 THEN (sales.qty * sales.price) END) / 
+		 SUM(sales.qty * sales.price))) AS mens
+FROM balanced_tree.sales AS sales
+JOIN balanced_tree.product_details AS details
+	ON sales.prod_id = details.product_id;
+
+--Answer: 44% womens, 56% mens
+
+--9. What is the total transaction “penetration” for each product?
+
+WITH product_txn AS (
+    SELECT product_name, COUNT(DISTINCT txn_id) AS num_of_txn
+    FROM balanced_tree.sales AS sales
+    	JOIN balanced_tree.product_details AS details
+  		ON details.product_id = sales.prod_id
+    GROUP BY 1
+	),
+total_txn AS (
+    SELECT COUNT(DISTINCT txn_id) AS total_of_txn
+    FROM balanced_tree.sales
+	)
+SELECT product_name, ROUND((num_of_txn::NUMERIC/total_of_txn) *100,2) AS penetration
+FROM product_txn, total_txn
+ORDER BY 2 DESC;
+
+--Answer: (see table)
+
+--10. What is the most common combination of at least 1 quantity of any 3 products in a 1 single transaction?
+
