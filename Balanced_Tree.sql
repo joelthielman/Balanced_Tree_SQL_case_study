@@ -206,18 +206,6 @@ FROM segment_revenue
 GROUP BY segment_revenue, category_name, segment_name
 ORDER BY category_name, segment_percent DESC;
 
-WITH segment_category_revenue AS (
-	SELECT details.segment_name, details.category_name, SUM(sales.qty * sales.price) AS category_revenue
-  	FROM balanced_tree.sales AS sales
-  		JOIN balanced_tree.product_details AS details
-    	ON sales.prod_id = details.product_id
-  	GROUP BY details.segment_name, details.category_name
-	)
-SELECT segment_name, category_name,
-	CAST(100.0 * category_revenue / SUM(category_revenue) OVER (PARTITION BY category_name) 
-    	AS decimal (10, 2)) AS segment_category_pct
-FROM segment_category_revenue;
-
 --8. What is the percentage split of total revenue by category?
 
 SELECT ROUND(100 * SUM(CASE WHEN details.category_id = 1 THEN (sales.qty * sales.price) END) / 
@@ -230,7 +218,7 @@ JOIN balanced_tree.product_details AS details
 
 --Answer: 44% womens, 56% mens
 
---9. What is the total transaction ìpenetrationî for each product?
+--9. What is the total transaction ‚Äúpenetration‚Äù for each product?
 
 WITH product_txn AS (
     SELECT product_name, COUNT(DISTINCT txn_id) AS num_of_txn
